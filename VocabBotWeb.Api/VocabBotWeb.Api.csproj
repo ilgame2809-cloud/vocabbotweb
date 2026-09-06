@@ -27,4 +27,11 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.8" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Словарь для сидинга (перенос Data/words.json из бота) — зашиваем в
+         сборку как embedded resource, чтобы путь к файлу не зависел от
+         рабочей директории процесса (важно для Docker/Render). -->
+    <EmbeddedResource Include="Data\Seed\words.json" />
+  </ItemGroup>
+
 </Project>

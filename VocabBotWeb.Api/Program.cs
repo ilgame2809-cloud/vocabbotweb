@@ -106,6 +106,12 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    // ---------- Сидинг словаря ----------
+    // Перенос WordSeed.cs из бота — идемпотентно (см. WordSeedService),
+    // так что при каждом следующем деплое просто ничего не делает, если
+    // словарь уже загружен.
+    await WordSeedService.SeedAsync(db);
 }
 
 if (app.Environment.IsDevelopment())

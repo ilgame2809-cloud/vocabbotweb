@@ -7,9 +7,10 @@
 - ✅ Подбор слов (`Services/WordSelectionService.cs` — перенос `Db.GetNextAnkiWordAsync` / `GetNextNewWordAsync`)
 - ✅ Auth: регистрация/логин с JWT (`Controllers/AuthController.cs`)
 - ✅ Первый вертикальный срез: `GET /api/words/next`, `POST /api/words/review`
+- ✅ Словарь (1250 слов из `Data/Seed/words.json` — перенос `WordSeed.cs` бота, загружается идемпотентно при старте, см. `Services/WordSeedService.cs`)
+- ✅ React-фронт (Login/Register/Home/Study — папка `vocabbot-frontend`, отдельный README там)
 - ⬜ Дневная норма / стрик (сейчас — TODO прямо в `WordsController.Review`)
 - ⬜ Свои колоды (`user_decks`), грамматический тренажёр, мок-тесты, учебный план
-- ⬜ React-фронт
 
 ## Деплой на Render
 
