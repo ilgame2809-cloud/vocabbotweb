@@ -4,9 +4,10 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { Home } from "./pages/Home";
 import { Study } from "./pages/Study";
 
-// Login.tsx и Register.tsx намеренно не подключены — см. комментарий в
-// AuthContext.tsx про временный автовход демо-аккаунтом. Файлы страниц не
-// удалены, чтобы легко вернуть их, когда понадобится реальная регистрация.
+// Login.tsx и Register.tsx удалены (не просто отключены) — см. комментарий
+// в AuthContext.tsx про временный автовход демо-аккаунтом. Если понадобится
+// вернуть настоящую регистрацию, эти два файла и роуты нужно будет
+// написать заново — они не сохранены "на будущее" в проекте.
 
 export function App() {
   return (
