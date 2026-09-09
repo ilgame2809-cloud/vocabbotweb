@@ -1,26 +1,38 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from "react";
 import * as authApi from "../api/auth";
 import { setToken, clearToken, getToken } from "../api/client";
 
 interface AuthState {
   isAuthenticated: boolean;
+  loading: boolean;
   email: string | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, firstName?: string) => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
 
-// email не приходит отдельно при перезагрузке страницы (мы храним только
-// JWT) — держим его в localStorage рядом с токеном просто для отображения
-// в UI ("Привет, email"), не для авторизации.
 const EMAIL_KEY = "vocabbot_email";
+
+/**
+ * ВРЕМЕННО (см. README): пока сайт тестируется и у него нет реальных
+ * пользователей, экраны Login/Register убраны — при первом заходе фронт
+ * сам логинится под одним общим демо-аккаунтом (создаёт его при первом
+ * запуске, если ещё не существует). Backend по-прежнему требует JWT на
+ * все защищённые эндпоинты — просто получение токена теперь не требует
+ * от человека ничего вводить руками.
+ *
+ * Когда дойдёт до реального запуска с разными людьми — это нужно откатить:
+ * вернуть роуты /login и /register (файлы Login.tsx/Register.tsx не
+ * удалены, просто не подключены в App.tsx) и убрать bootstrapDemoSession.
+ */
+const DEMO_EMAIL = "demo@vocabbot.local";
+const DEMO_PASSWORD = "Demo12345!";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [email, setEmail] = useState<string | null>(() =>
     getToken() ? localStorage.getItem(EMAIL_KEY) : null
   );
+  const [loading, setLoading] = useState(!getToken());
 
   const applyAuth = (res: authApi.AuthResponse) => {
     setToken(res.token);
@@ -28,18 +40,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setEmail(res.email);
   };
 
-  const login = useCallback(async (loginEmail: string, password: string) => {
-    const res = await authApi.login(loginEmail, password);
-    applyAuth(res);
-  }, []);
+  useEffect(() => {
+    if (getToken()) return; // уже есть токен с прошлого раза — ничего делать не нужно
 
-  const register = useCallback(
-    async (regEmail: string, password: string, firstName?: string) => {
-      const res = await authApi.register(regEmail, password, firstName);
-      applyAuth(res);
-    },
-    []
-  );
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authApi.login(DEMO_EMAIL, DEMO_PASSWORD);
+        if (!cancelled) applyAuth(res);
+      } catch {
+        // Демо-аккаунта ещё нет на backend — создаём один раз.
+        try {
+          const res = await authApi.register(DEMO_EMAIL, DEMO_PASSWORD, "Демо");
+          if (!cancelled) applyAuth(res);
+        } catch (err) {
+          // Backend недоступен — оставляем isAuthenticated=false, ProtectedRoute
+          // сам решит, что показать (сейчас — просто пустой экран, см. App.tsx).
+          console.error("Не удалось создать/войти в демо-аккаунт:", err);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const logout = useCallback(() => {
     clearToken();
@@ -48,9 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider
-      value={{ isAuthenticated: !!email, email, login, register, logout }}
-    >
+    <AuthContext.Provider value={{ isAuthenticated: !!email, loading, email, logout }}>
       {children}
     </AuthContext.Provider>
   );

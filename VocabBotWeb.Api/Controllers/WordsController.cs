@@ -79,11 +79,12 @@ public class WordsController : ControllerBase
 
         SpacedRepetitionService.ApplyReview(userWord, quality.Value);
 
-        // TODO (следующий срез): дневная норма/стрик — Db.cs считал words_learned_today
-        // и current_streak прямо здесь же при первом успешном ответе по новому слову.
-        // Осознанно не переносим сейчас, чтобы этот эндпоинт остался маленьким и
-        // проверяемым — вынесем в отдельный StreakService, когда будем делать
-        // экран "Дневная норма" на сайте.
+        // Дневная норма/стрик — перенос Db.CheckAndResetDailyLimitAsync +
+        // Db.IncrementTodayLearnedWordsAsync + Db.RecordActivityAndGetStreakAsync,
+        // которые в боте всегда вызывались вместе на каждую оценённую карточку
+        // (см. DailyProgressService для деталей).
+        var user = await _db.Users.FindAsync(userId);
+        if (user is not null) DailyProgressService.ApplyLearningActivity(user);
 
         await _db.SaveChangesAsync();
         return NoContent();

@@ -21,3 +21,18 @@ public record WordCardResponse(
 );
 
 public record ReviewRequest(int WordId, string Quality); // "again" | "hard" | "good" | "easy"
+
+public record ProfileResponse(
+    string Email,
+    string? FirstName,
+    string Level,
+    string Direction,
+    int WordsPerDay,
+    int WordsLearnedToday,
+    int CurrentStreak,
+    int LongestStreak,
+    int WordsInProgress, // Interval <= 0 — перенос Db.GetLearningStatsAsync.inProgress
+    int WordsMastered,   // Interval > 0  — перенос Db.GetLearningStatsAsync.mastered
+    int DecksCount,
+    int? TestAccuracyPercent // null если тест на уровень ещё не проходили (Total == 0)
+);

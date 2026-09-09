@@ -1,25 +1,25 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getProfile, Profile } from "../api/profile";
 import "./Home.css";
 
-/**
- * Backend пока не отдаёт профиль/статистику (ApplicationUser.Level,
- * WordsPerDay, CurrentStreak и т.д. — поля есть в модели, но GET-эндпоинта
- * для них ещё нет, см. README_MIGRATION.md → "Что дальше"). Поэтому здесь
- * два вида данных:
- *   - то, что реально приходит с сервера (email из AuthContext),
- *   - и явно помеченные плейсхолдеры для стрика/статистики — они провисят
- *     до тех пор, пока не появится GET /api/profile.
- * Уровень для подбора слов пока захардкожен — как только появится профиль,
- * замени DEFAULT_LEVEL на user.level из ответа API.
- */
-const DEFAULT_LEVEL = "Beginner / A1-A2";
-
 export function Home() {
-  const { email, logout } = useAuth();
+  const { email } = useAuth();
   const navigate = useNavigate();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const displayName = email?.split("@")[0] ?? "друг";
+  useEffect(() => {
+    getProfile()
+      .then(setProfile)
+      .catch(() => setProfile(null)) // экран остаётся рабочим и без профиля — просто с прочерками
+      .finally(() => setLoading(false));
+  }, []);
+
+  const displayName = profile?.firstName || email?.split("@")[0] || "друг";
+  const goalDone = profile ? Math.min(profile.wordsLearnedToday, profile.wordsPerDay) : 0;
+  const goalTotal = profile?.wordsPerDay ?? 0;
 
   return (
     <div className="phone">
@@ -27,47 +27,49 @@ export function Home() {
         <div>
           <p className="greeting-eyebrow">Доброе утро</p>
           <h1 className="greeting">{displayName} 👋</h1>
-          <div className="level-chip">{DEFAULT_LEVEL} · EN → RU</div>
+          <div className="level-chip">{profile?.level ?? "—"} · {profile?.direction ?? "—"}</div>
         </div>
-        {/* TODO: стрик считается в WordsController.Review (см. TODO там же) —
-            как только появится, заменить на реальное значение из профиля. */}
-        <div className="streak-badge" title="Скоро — стрик ещё не считается на бэкенде">
+        <div className="streak-badge">
           <span className="flame">🔥</span>
-          <span className="num">—</span>
+          <span className="num">{loading ? "…" : profile?.currentStreak ?? "—"}</span>
           <span className="lbl">дней</span>
         </div>
       </div>
 
-      {/* TODO: карточка статистики — нужен GET /api/profile или /api/stats.
-          Сейчас показываем структуру без реальных цифр, чтобы не врать
-          пользователю числами "из воздуха". */}
       <div className="stats-card">
         <span className="stats-tab">Прогресс</span>
         <div className="stats-grid">
           <div className="stat">
-            <div className="value">— <small>/ —</small></div>
+            <div className="value">
+              {loading ? "…" : goalDone} <small>/ {loading ? "—" : goalTotal}</small>
+            </div>
             <div className="label">выучено сегодня</div>
           </div>
           <div className="stat">
-            <div className="value">—</div>
+            <div className="value">{loading ? "…" : profile?.wordsInProgress ?? "—"}</div>
             <div className="label">на изучении</div>
           </div>
           <div className="stat">
-            <div className="value">—</div>
+            <div className="value">{loading ? "…" : profile?.wordsMastered ?? "—"}</div>
             <div className="label">освоено надолго</div>
           </div>
           <div className="stat">
-            <div className="value">—</div>
+            <div className="value">{loading ? "…" : profile?.decksCount ?? "—"}</div>
             <div className="label">своих колод</div>
           </div>
         </div>
         <hr className="stats-rule" />
         <div className="accuracy-row">
-          <span className="label">Точность</span>
+          <span className="label">Точность теста</span>
           <div className="accuracy-bar">
-            <div className="accuracy-fill" style={{ width: "0%" }} />
+            <div
+              className="accuracy-fill"
+              style={{ width: `${profile?.testAccuracyPercent ?? 0}%` }}
+            />
           </div>
-          <span className="accuracy-pct">—%</span>
+          <span className="accuracy-pct">
+            {profile?.testAccuracyPercent != null ? `${profile.testAccuracyPercent}%` : "—"}
+          </span>
         </div>
       </div>
 
@@ -110,18 +112,9 @@ export function Home() {
           </span>
           <span className="menu-arrow">›</span>
         </button>
-        <button
-          className="menu-item"
-          onClick={logout}
-          style={{ ["--item-accent" as string]: "var(--rule-strong)" }}
-        >
-          <span className="menu-icon">⚙️</span>
-          <span className="menu-body">
-            <div className="menu-title">Выйти</div>
-            <div className="menu-sub">{email}</div>
-          </span>
-          <span className="menu-arrow">›</span>
-        </button>
+        {/* Раньше здесь была кнопка "Выйти" — без экрана логина она вела в
+            тупик (обратно зайти было бы некуда), поэтому убрана вместе с
+            /login и /register. См. AuthContext.tsx. */}
       </div>
 
       <p className="foot">VocabBot · веб-версия</p>
@@ -129,4 +122,6 @@ export function Home() {
   );
 }
 
-export { DEFAULT_LEVEL };
+// Уровень для подбора слов на экране Study — используется, пока там нет
+// собственного запроса профиля (см. TODO в Study.tsx).
+export const DEFAULT_LEVEL = "Beginner / A1-A2";

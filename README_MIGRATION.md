@@ -7,9 +7,14 @@
 - ✅ Подбор слов (`Services/WordSelectionService.cs` — перенос `Db.GetNextAnkiWordAsync` / `GetNextNewWordAsync`)
 - ✅ Auth: регистрация/логин с JWT (`Controllers/AuthController.cs`)
 - ✅ Первый вертикальный срез: `GET /api/words/next`, `POST /api/words/review`
+- ✅ Фикс бага с повторами слов: `WordSelectionService.GetNextDueWordAsync` игнорировал
+  таймер `NextReview` для карточек в фазе Learning (условие `Interval <= 0 || ...`
+  всегда считало их "просроченными") — из-за этого "Again"/"Hard" мгновенно
+  возвращали ту же карточку следующей вместо честного ожидания 2-5 минут.
 - ✅ Словарь (1250 слов из `Data/Seed/words.json` — перенос `WordSeed.cs` бота, загружается идемпотентно при старте, см. `Services/WordSeedService.cs`)
 - ✅ React-фронт (Login/Register/Home/Study — папка `vocabbot-frontend`, отдельный README там)
-- ⬜ Дневная норма / стрик (сейчас — TODO прямо в `WordsController.Review`)
+- ✅ Дневная норма / стрик (`Services/DailyProgressService.cs` — перенос `CheckAndResetDailyLimitAsync` + `IncrementTodayLearnedWordsAsync` + `RecordActivityAndGetStreakAsync`)
+- ✅ `GET /api/profile` — статистика для главного экрана (стрик, дневная норма, "на изучении"/"освоено надолго", точность теста на уровень)
 - ⬜ Свои колоды (`user_decks`), грамматический тренажёр, мок-тесты, учебный план
 
 ## Деплой на Render
